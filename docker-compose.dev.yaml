@@ -1,0 +1,68 @@
+version: '2.7'
+
+services:
+  django:
+    container_name: mailing-django
+    build:
+      context: .
+    restart: unless-stopped
+    command: >
+      sh -c "./mailing/manage.py makemigrations && 
+             ./mailing/manage.py migrate &&
+             ./mailing/manage.py runserver 0.0.0.0:8000"
+    ports:
+    - 8000:8000
+    volumes:
+      - /home/mailing/web
+    env_file:
+      - .env
+    depends_on:
+      - db
+      - redis
+
+  db:
+    container_name: mailing-postgres
+    image: postgres:9.6-alpine
+    restart: unless-stopped
+    ports:
+      - 5432:5432
+    volumes:
+      - postgres_volume:/var/lib/postgresql/data/
+    env_file:
+      - .env
+
+  redis:
+    container_name: mailing-redis
+    image: redis:5-alpine
+    restart: unless-stopped
+    ports:
+      - 6379:6379
+
+  celery-worker:
+    container_name: mailing-celery-worker
+    build:
+      context: .
+    restart: unless-stopped
+    command: sh -c "cd mailing && celery -A mailing worker -l info"
+    volumes:
+      - /home/mailing/web
+    env_file:
+      - .env
+    depends_on:
+      - redis
+
+  celery-beat:
+    container_name: storage-celery-beat
+    build:
+      context: .
+    restart: unless-stopped
+    command: sh -c "cd mailing && celery -A mailing beat -l info"
+    volumes:
+      - /home/mailing/web
+    env_file:
+      - .env
+    depends_on:
+      - redis
+
+volumes:
+  postgres_volume:
