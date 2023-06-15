@@ -1,59 +1,58 @@
 {% load static %}
 <!DOCTYPE html>
 <html>
-<head>
-  <title>Рассылка {{ mailing }}</title>
-  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-</head>
-<body>
-  <h2>Письма на отправку</h2>
-  <a href="{% url 'show_mailing_list' %}" class="btn btn-primary mt-3">Назад к рассылкам</a>
+	<head>
+		<title>Рассылка {{ mailing }}</title>
+		<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+	</head>
+	<body>
+        <div class="container md-12">
+            <h2>Письма на отправку</h2>
+            <a href="{% url 'show_mailing_list' %}" class="btn btn-primary mt-3">Назад к рассылкам</a>
+            {% for outgoing_email in outgoing_emails %}
+            <div class="container mt-5">
+                <div class="card">
+                    <div class="card-header">
+                        Информация о письме:
+                    </div>
+                    <tr class="email-row" data-email-id="{{ email.id }}">
+                        <h5 class="card-title">Получатель: {{ outgoing_email.recipient_email }}</h5>
+                        <p class="card-text">Статус: {{ outgoing_email.get_status_display }}</p>
+                        <p class="card-text">Дата и время создания: {{ outgoing_email.created_at }}</p>
+                    </tr>
+                </div>
+            </div>
+		</div>
+		{% endfor %}
+		<script>
+			function updateEmailStatus(emailId) {
+			  $.ajax({
+			    url: '/get_email_status/' + emailId + '/',
+			    method: 'GET',
+			    success: function(response) {
+			      var status = response.status;
+			      $('#status-' + emailId).text(status);
+			    },
+			    error: function() {
+			      console.log('Error occurred while fetching email status.');
+			    }
+			  });
+			}
 
-  {% for outgoing_email in outgoing_emails %}
-  <div class="container mt-5">
-    <div class="card">
-      <div class="card-header">
-        Информация о письме:
-      </div>
-        <tr class="email-row" data-email-id="{{ email.id }}">
-          <h5 class="card-title">Получатель: {{ outgoing_email.recipient_email }}</h5>
-          <p class="card-text">Статус: {{ outgoing_email.get_status_display }}</p>
-          <p class="card-text">Дата и время создания: {{ outgoing_email.created_at }}</p>
-        </tr>
-      </div>
-    </div>
-  </div>
-  {% endfor %}
-  <script>
-    function updateEmailStatus(emailId) {
-      $.ajax({
-        url: '/get_email_status/' + emailId + '/',
-        method: 'GET',
-        success: function(response) {
-          var status = response.status;
-          $('#status-' + emailId).text(status);  // Update the status in the HTML
-        },
-        error: function() {
-          console.log('Error occurred while fetching email status.');
-        }
-      });
-    }
+			$(document).ready(function() {
+			  function updateEmails() {
+			    $('.email-row').each(function() {
+			      var emailId = $(this).data('email-id');
+			      updateEmailStatus(emailId);
+			    });
+			  }
 
-    $(document).ready(function() {
-      function updateEmails() {
-        $('.email-row').each(function() {
-          var emailId = $(this).data('email-id');
-          updateEmailStatus(emailId);
-        });
-      }
+			  updateEmails();
 
-      // Update the statuses on page load
-      updateEmails();
+			  // Update the statuses every 5 seconds
+			  setInterval(updateEmails, 5000);
+			});
 
-      // Update the statuses every 5 seconds
-      setInterval(updateEmails, 5000);
-    });
-
-  </script>
-</body>
+		</script>
+	</body>
 </html>

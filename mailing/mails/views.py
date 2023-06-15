@@ -3,6 +3,7 @@ from __future__ import unicode_literals
 
 from django.contrib.auth.decorators import login_required
 from django.contrib.sites.shortcuts import get_current_site
+from django.db import transaction
 from django.dispatch import receiver
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, render
@@ -15,6 +16,7 @@ from mails.signals import email_sent
 def get_templates(request):
     templates = EmailTemplate.objects.all()
     serialized_templates = [{'id': template.id, 'name': template.name} for template in templates]
+
     return JsonResponse(serialized_templates, safe=False)
 
 
@@ -22,6 +24,7 @@ def get_templates(request):
 def get_contacts(request):
     contacts = Contact.objects.all()
     serialized_contact = [{'id': contact.id, 'name': contact.name} for contact in contacts]
+
     return JsonResponse(serialized_contact, safe=False)
 
 
@@ -33,7 +36,7 @@ def show_mailing_list(request):
         'mailings': mailings
     }
 
-    return render(request, 'base.html', context)
+    return render(request, 'mailing-list.html', context)
 
 
 @login_required
@@ -48,6 +51,7 @@ def show_mailing_details(request, mailing_id):
 
 
 @login_required
+@transaction.atomic
 def send_mails(request):
     if request.method == 'POST':
         recipient_ids = request.POST.getlist('recipientIds[]')
@@ -85,6 +89,8 @@ def send_mails(request):
             outgoing_email.send_email(email_content_with_tracking)
 
         return JsonResponse({'success': 1})
+
+    return JsonResponse({'error': 0})
 
 
 @login_required
